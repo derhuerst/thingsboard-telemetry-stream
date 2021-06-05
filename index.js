@@ -2,7 +2,6 @@
 
 const debug = require('debug')('thingsboard-telemetry-stream')
 const fetch = require('cross-fetch')
-const ReconnectingWebSocket = require('reconnecting-websocket')
 const WebSocket = require('isomorphic-ws')
 const parseJWT = require('jwt-decode')
 const {EventEmitter} = require('events')
@@ -70,23 +69,14 @@ const connectToThingsboardTelemetryAPI = async (cfg = {}) => {
 	let wsUrl = new URL(`${useHttps ? 'wss' : 'ws'}://example.org`)
 	wsUrl.host = host
 	wsUrl.pathname = '/api/ws/plugins/telemetry'
-	let curToken = token, curTokenParsed = token && parseJWT(token)
-	const getWsUrl = async () => {
-		const expired = curTokenParsed ? Math.floor(Date.now() / 1000) > curTokenParsed.exp : true
-		if (user && expired) {
-			curToken = await fetchThingsboardToken(useHttps, host, user, password)
-			curTokenParsed = parseJWT(curToken)
-		}
-		wsUrl.searchParams.set('token', curToken)
-		return wsUrl.href
+	if (token) {
+		wsUrl.searchParams.set('token', token)
+	} else if (user) {
+		const token = await fetchThingsboardToken(useHttps, host, user, password)
+		wsUrl.searchParams.set('token', token)
 	}
 
-	const ws = new ReconnectingWebSocket(getWsUrl, undefined, {
-		WebSocket,
-		// tweak for faster reconnects
-		minReconnectionDelay: 500 + Math.random() * 1000,
-		...wsOpts,
-	})
+	const ws = new WebSocket(wsUrl.href, undefined, wsOpts)
 
 	await new Promise((resolve, reject) => {
 		const err = new Error('timeout waiting for command responses')
