@@ -8,7 +8,7 @@ const abortWithError = (err) => {
 }
 
 ;(async () => {
-	const connection = connect({
+	const connection = await connect({
 		host: process.env.THINGSBOARD_HOST || 'thingsboard.cloud',
 		token: process.env.THINGSBOARD_TOKEN,
 		user: process.env.THINGSBOARD_USER,

@@ -33,15 +33,17 @@ const fetchThingsboardToken = async (useHttps, host, user, password) => {
 	return body.token
 }
 
-const connectToThingsboardTelemetryAPI = (cfg = {}) => {
+const connectToThingsboardTelemetryAPI = async (cfg = {}) => {
 	const {
 		useHttps,
+		connectTimeout,
 		host,
 		token,
 		user, password,
 		wsOpts,
 	} = {
 		useHttps: true,
+		connectTimeout: 5 * 1000, // 5s
 		host: 'thingsboard.cloud',
 		token: process.env.THINGSBOARD_TOKEN,
 		user: process.env.THINGSBOARD_USER,
@@ -85,6 +87,27 @@ const connectToThingsboardTelemetryAPI = (cfg = {}) => {
 		minReconnectionDelay: 500 + Math.random() * 1000,
 		...wsOpts,
 	})
+
+	await new Promise((resolve, reject) => {
+		const err = new Error('timeout waiting for command responses')
+		const timer = setTimeout(reject, connectTimeout, err)
+
+		const onOpen = () => {
+			clearTimeout(timer)
+			ws.removeEventListener('open', onOpen)
+			ws.removeEventListener('error', onError)
+			resolve()
+		}
+		const onError = (err) => {
+			clearTimeout(timer)
+			ws.removeEventListener('open', onOpen)
+			ws.removeEventListener('error', onError)
+			reject(err)
+		}
+		ws.addEventListener('open', onOpen)
+		ws.addEventListener('error', onError)
+	})
+	debug('connection ready')
 
 	return ws
 }
