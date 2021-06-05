@@ -27,7 +27,7 @@ const connection = connect({
 connection.addEventListener('error', abortWithError)
 ```
 
-If you don't pass in `token`, the `THINGSBOARD_TOKEN` environment variable will be used.
+If you pass in `token` or set the `THINGSBOARD_TOKEN` environment variable, only this token will be used. To let it periodically generate new token instead, pass in `user` & `password` or set the `THINGSBOARD_USER` & `THINGSBOARD_PASSWORD` environment variables.
 
 
 ## Contributing
