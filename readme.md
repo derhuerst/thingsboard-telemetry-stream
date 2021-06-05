@@ -19,8 +19,15 @@ npm install thingsboard-telemetry-stream
 ## Usage
 
 ```js
-// todo
+const {connect} = require('thingsboard-telemetry-stream')
+
+const connection = connect({
+	token: '<API token here>',
+})
+connection.addEventListener('error', abortWithError)
 ```
+
+If you don't pass in `token`, the `THINGSBOARD_TOKEN` environment variable will be used.
 
 
 ## Contributing
