@@ -1,6 +1,6 @@
 'use strict'
 
-const {connect} = require('.')
+const {connect, fetchDevices} = require('.')
 
 const abortWithError = (err) => {
 	console.error(err)
@@ -16,7 +16,9 @@ const abortWithError = (err) => {
 	})
 	connection.addEventListener('error', abortWithError)
 
-	// todo
+	const devices = await fetchDevices(connection, process.env.THINGSBOARD_DEVICE_GROUP)
+	const deviceIds = devices.map(d => d.entityId.id)
+	console.log('device IDs', deviceIds)
 
 	connection.close()
 })()

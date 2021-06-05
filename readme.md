@@ -29,6 +29,53 @@ connection.addEventListener('error', abortWithError)
 
 If you pass in `token` or set the `THINGSBOARD_TOKEN` environment variable, only this token will be used. To let it periodically generate new token instead, pass in `user` & `password` or set the `THINGSBOARD_USER` & `THINGSBOARD_PASSWORD` environment variables.
 
+### sending commands manually
+
+```js
+const {sendCommands, getCommandId} = require('.')
+
+const res = await sendCommands(connection, {
+	entityDataCmds: [{
+		cmdId: getCommandId(connection),
+		query: {
+			entityFilter: {
+				type: 'entityGroup',
+				groupType: 'DEVICE',
+				entityGroup: '780c1435-cac2-4be7-8d85-0961239e02e4',
+			},
+			pageLink: {pageSize: 10},
+		},
+	}],
+})
+console.log(res.entityDataCmds[0])
+```
+
+```js
+{
+	data: [
+		{
+			entityId: {
+				entityType: 'DEVICE',
+				id: '338e9c33-988f-4314-9e46-cb8c94236942'
+			},
+			readAttrs: true, readTs: true,
+			latest: {}, timeseries: {},
+		},
+		{
+			entityId: {
+				entityType: 'DEVICE',
+				id: 'cf59aeaa-7a09-457a-bd04-4f3a2596b960'
+			},
+			readAttrs: true, readTs: true,
+			latest: {}, timeseries: {},
+		},
+	],
+	totalPages: 1,
+	totalElements: 2,
+	hasNext: false,
+}
+```
+
 
 ## Contributing
 
