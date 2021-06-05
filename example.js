@@ -1,6 +1,6 @@
 'use strict'
 
-const {connect, fetchDevices} = require('.')
+const {connect, fetchDevices, subscribeToTimeseries} = require('.')
 
 const abortWithError = (err) => {
 	console.error(err)
@@ -20,6 +20,11 @@ const abortWithError = (err) => {
 	const deviceIds = devices.map(d => d.entityId.id)
 	console.log('device IDs', deviceIds)
 
-	connection.close()
+	const sub = await subscribeToTimeseries(connection, deviceIds)
+	let updates = 0
+	sub.on('data', (deviceId, data) => {
+		console.log(deviceId, data)
+		if (++updates >= 10) connection.close()
+	})
 })()
 .catch(abortWithError)

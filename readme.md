@@ -29,6 +29,23 @@ connection.addEventListener('error', abortWithError)
 
 If you pass in `token` or set the `THINGSBOARD_TOKEN` environment variable, only this token will be used. To let it periodically generate new token instead, pass in `user` & `password` or set the `THINGSBOARD_USER` & `THINGSBOARD_PASSWORD` environment variables.
 
+### subscribing to devices' telemetry data
+
+```js
+const {fetchDevices, subscribeToTimeseries} = require('.')
+
+const deviceGroupId = '780c1435-cac2-4be7-8d85-0961239e02e4'
+
+const devices = await fetchDevices(connection, deviceGroupId)
+const deviceIds = devices.map(d => d.entityId.id)
+const sub = await subscribeToTimeseries(connection, deviceIds)
+
+// all devices's telemetry
+sub.on('data', (deviceId, data) => console.log(deviceId, data))
+// a single device's telemetry
+sub.on('338e9c33-988f-4314-9e46-cb8c94236942:data', (data) => console.log(data))
+```
+
 ### sending commands manually
 
 ```js

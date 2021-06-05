@@ -150,10 +150,11 @@ const sendThingsboardCommands = async (connection, allCmds, opt = {}) => {
 	const onMsg = (msgEv) => {
 		try {
 			const msg = parseThingsboardMessage(msgEv)
-			if (!tasks.has(msg.cmdId)) return; // skip unrelated response
-			const [key, i] = tasks.get(msg.cmdId)
+			const id = subscribe ? msg.subscriptionId : msg.cmdId
+			if (!tasks.has(id)) return; // skip unrelated response
+			const [key, i] = tasks.get(id)
 			res[key][i] = msg.data
-			tasks.delete(msg.cmdId)
+			tasks.delete(id)
 
 			if (tasks.size === 0) {
 				// teardown
@@ -191,9 +192,82 @@ const fetchThingsboardDevices = async (connection, deviceGroupId) => {
 	return res.entityDataCmds[0].data
 }
 
+// todo: add pull-based API, e.g. async iterator?
+const subscribeToThingsboardDevicesTimeseries = async (connection, deviceIds) => {
+	const subscriptions = new Map() // subscription ID -> device ID
+	const out = new EventEmitter()
+
+	const tsSubCmds = []
+	for (const deviceId of deviceIds) {
+		const subId = getThingsboardCommandId(connection)
+		tsSubCmds.push({
+			cmdId: subId,
+			entityType: 'DEVICE',
+			entityId: deviceId,
+			scope: 'LATEST_TELEMETRY',
+		})
+		subscriptions.set(subId, deviceId)
+	}
+
+	const emitData = (deviceId, data) => {
+		out.emit(deviceId + ':data', data)
+		out.emit('data', deviceId, data)
+	}
+
+	let subscribing = true, firstDataEvents = []
+	const onMsg = (msgEv) => {
+		const res = parseThingsboardMessage(msgEv)
+		if (!subscriptions.has(res.subscriptionId)) return; // skip unrelated response
+		const deviceId = subscriptions.get(res.subscriptionId)
+
+		if (subscribing) {
+			// The message has arrived before the `sendThingsboardCommands`
+			// Promise has resolved. We emit the data later to let calling
+			// code add event listener(s) first.
+			firstDataEvents.push([deviceId, res.data])
+		} else emitData(deviceId, res.data)
+	}
+	connection.addEventListener('message', onMsg)
+
+	await sendThingsboardCommands(connection, {tsSubCmds}, {
+		timeout: 15 * 1000, // 15s
+		subscribe: true,
+	})
+	subscribing = false
+
+	setImmediate(() => {
+		for (const [deviceId, data] of firstDataEvents) emitData(deviceId, data)
+		firstDataEvents = []
+	})
+
+	const unsubscribe = async () => {
+		const subs = Array.from(subscriptions.entries())
+		await sendThingsboardCommands(connection, {
+			tsSubCmds: subs.map(([subId, deviceId]) => ({
+				// todo: this doesn't seem to work
+				cmdId: subId,
+				entityType: 'DEVICE',
+				entityId: deviceId,
+				scope: 'LATEST_TELEMETRY',
+				unsubscribe: true,
+			})),
+		}, {
+			timeout: 15 * 1000, // 15s
+		})
+
+		subscriptions.clear()
+		connection.removeEventListener('message', onMsg)
+	}
+
+	out.subscriptions = subscriptions
+	out.unsubscribe = unsubscribe
+	return out
+}
+
 module.exports = {
 	connect: connectToThingsboardTelemetryAPI,
 	getCommandId: getThingsboardCommandId,
 	sendCommands: sendThingsboardCommands,
 	fetchDevices: fetchThingsboardDevices,
+	subscribeToTimeseries: subscribeToThingsboardDevicesTimeseries,
 }
