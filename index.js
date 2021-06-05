@@ -1,5 +1,6 @@
 'use strict'
 
+const debug = require('debug')('thingsboard-telemetry-stream')
 const fetch = require('cross-fetch')
 const ReconnectingWebSocket = require('reconnecting-websocket')
 const WebSocket = require('isomorphic-ws')
@@ -136,6 +137,7 @@ const sendThingsboardCommands = async (connection, allCmds, opt = {}) => {
 		req[key] = cmds
 		res[key] = new Array(cmds.length)
 	}
+	debug('sending request', req)
 	connection.send(JSON.stringify(req))
 
 	let resolve, reject, timer
@@ -152,6 +154,7 @@ const sendThingsboardCommands = async (connection, allCmds, opt = {}) => {
 			const msg = parseThingsboardMessage(msgEv)
 			const id = subscribe ? msg.subscriptionId : msg.cmdId
 			if (!tasks.has(id)) return; // skip unrelated response
+			debug('response', msg)
 			const [key, i] = tasks.get(id)
 			res[key][i] = msg.data
 			tasks.delete(id)
