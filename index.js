@@ -110,10 +110,11 @@ const getThingsboardCommandId = (connection) => {
 }
 
 const parsedMsgs = new WeakMap() // message event -> parsed message
-const parseThingsboardMessage = (msgEv) => {
+const parseThingsboardMessage = (msgEv, isBinary) => {
 	if (parsedMsgs.has(msgEv)) return parsedMsgs.get(msgEv)
 	try {
-		const msg = JSON.parse(msgEv.data + '')
+		const data = isBinary ? msgEv.data.toString() : msgEv.data
+		const msg = JSON.parse(data)
 		if (msg.errorCode !== 0) {
 			const err = new Error(msg.errorMsg || 'unknown error')
 			err.code = msg.errorCode
@@ -162,9 +163,9 @@ const sendThingsboardCommands = async (connection, allCmds, opt = {}) => {
 		timer = setTimeout(reject, timeout, timeoutErr)
 	})
 
-	const onMsg = (msgEv) => {
+	const onMsg = (msgEv, isBinary) => {
 		try {
-			const msg = parseThingsboardMessage(msgEv)
+			const msg = parseThingsboardMessage(msgEv, isBinary)
 			const id = subscribe ? msg.subscriptionId : msg.cmdId
 			if (!tasks.has(id)) return; // skip unrelated response
 			debug('response', msg)
@@ -231,8 +232,8 @@ const subscribeToThingsboardDevicesTimeseries = async (connection, deviceIds) =>
 	}
 
 	let subscribing = true, firstDataEvents = []
-	const onMsg = (msgEv) => {
-		const res = parseThingsboardMessage(msgEv)
+	const onMsg = (msgEv, isBinary) => {
+		const res = parseThingsboardMessage(msgEv, isBinary)
 		if (!subscriptions.has(res.subscriptionId)) return; // skip unrelated response
 		const deviceId = subscriptions.get(res.subscriptionId)
 
