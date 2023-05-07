@@ -1,7 +1,7 @@
 {
 	"name": "thingsboard-telemetry-stream",
 	"description": "Fetch data from the Thingsboard telemetry WebSocket API.",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"main": "index.js",
 	"files": [
 		"index.js",
@@ -16,9 +16,9 @@
 		"realtime"
 	],
 	"author": "Jannis R <mail@jannisr.de>",
-	"homepage": "https://github.com/derhuerst/todo-name",
-	"repository": "derhuerst/todo-name",
-	"bugs": "https://github.com/derhuerst/todo-name/issues",
+	"homepage": "https://github.com/derhuerst/thingsboard-telemetry-stream",
+	"repository": "derhuerst/thingsboard-telemetry-stream",
+	"bugs": "https://github.com/derhuerst/thingsboard-telemetry-stream/issues",
 	"license": "ISC",
 	"engines": {
 		"node": ">=14"
